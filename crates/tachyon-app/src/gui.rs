@@ -1019,22 +1019,23 @@ fn setup_custom_styles(ctx: &egui::Context) {
     let mut visuals = egui::Visuals::dark();
 
     // Zed-inspired slate palette
-    visuals.panel_fill = Color32::from_rgb(15, 23, 42);      // Slate 950
-    visuals.window_fill = Color32::from_rgb(22, 28, 45);     // Slightly lighter for sidebar/windows
+    visuals.panel_fill = Color32::from_rgb(15, 23, 42); // Slate 950
+    visuals.window_fill = Color32::from_rgb(22, 28, 45); // Slightly lighter for sidebar/windows
     visuals.widgets.noninteractive.bg_fill = visuals.panel_fill;
-    visuals.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0, Color32::from_rgb(30, 41, 59)); // Slate 800
+    visuals.widgets.noninteractive.bg_stroke =
+        egui::Stroke::new(1.0, Color32::from_rgb(30, 41, 59)); // Slate 800
 
     visuals.widgets.inactive.bg_fill = Color32::from_rgb(30, 41, 59); // Slate 800
     visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);
-    
-    visuals.widgets.hovered.bg_fill = Color32::from_rgb(51, 65, 85);  // Slate 700
+
+    visuals.widgets.hovered.bg_fill = Color32::from_rgb(51, 65, 85); // Slate 700
     visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
-    
+
     visuals.widgets.active.bg_fill = Color32::from_rgb(56, 189, 248); // Sky 400
     visuals.widgets.active.rounding = egui::Rounding::same(6.0);
 
     visuals.selection.bg_fill = Color32::from_rgb(56, 189, 248).gamma_multiply(0.3);
-    
+
     ctx.set_visuals(visuals);
 
     let mut style = (*ctx.style()).clone();
