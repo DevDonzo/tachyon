@@ -1,0 +1,14 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+debug/
+release/
+
+# OS-specific
+.DS_Store
+
+# Logs
+*.log
+
+# Environment
+.env

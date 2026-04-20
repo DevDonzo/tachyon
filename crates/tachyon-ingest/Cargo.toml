@@ -1,0 +1,14 @@
+[package]
+name = "tachyon-ingest"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+memmap2.workspace = true
+rayon.workspace = true
+tachyon-core = { path = "../tachyon-core" }
+
+[dev-dependencies]
+tempfile.workspace = true

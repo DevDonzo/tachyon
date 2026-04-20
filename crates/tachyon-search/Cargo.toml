@@ -1,0 +1,11 @@
+[package]
+name = "tachyon-search"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+authors.workspace = true
+
+[dependencies]
+regex.workspace = true
+tachyon-core = { path = "../tachyon-core" }
+tachyon-ingest = { path = "../tachyon-ingest" }
