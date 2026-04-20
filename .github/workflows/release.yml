@@ -33,7 +33,9 @@ jobs:
         shell: bash
         run: |
           mkdir -p dist
-          cp target/release/tachyon-app "dist/tachyon-app-${{ runner.os }}"
+          cp target/release/tachyon-app "tachyon-app"
+          chmod +x tachyon-app
+          zip "dist/tachyon-app-${{ runner.os }}.zip" tachyon-app
 
       - name: Stage artifact (Windows)
         if: runner.os == 'Windows'
@@ -41,6 +43,8 @@ jobs:
         run: |
           New-Item -ItemType Directory -Path dist -Force | Out-Null
           Copy-Item "target/release/tachyon-app.exe" "dist/tachyon-app-windows.exe"
+          Compress-Archive -Path "dist/tachyon-app-windows.exe" -DestinationPath "dist/tachyon-app-windows.zip"
+          Remove-Item "dist/tachyon-app-windows.exe"
 
       - name: Upload workflow artifact
         uses: actions/upload-artifact@v4

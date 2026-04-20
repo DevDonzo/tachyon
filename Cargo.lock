@@ -670,6 +670,7 @@ dependencies = [
  "tachyon-ingest",
  "tachyon-render",
  "tachyon-search",
+ "tachyon-trace",
  "tracing",
  "tracing-subscriber",
 ]

@@ -16,13 +16,21 @@ It is an independent research project focused on high-performance systems engine
 
 ## 📥 Download
 
-Tachyon is currently in **Beta**. You can download the latest pre-built binaries for your platform from the [Releases](https://github.com/DevDonzo/tachyon/releases) page.
+Tachyon is currently in **Beta (CLI Preview)**. The graphical interface is currently under development.
+
+1. Download the `.zip` for your platform from the [Releases](https://github.com/DevDonzo/tachyon/releases) page.
+2. Unzip the file.
+3. **macOS/Linux**: Open your Terminal, drag the file in, and add a path to a log file:
+   ```bash
+   ./tachyon-app --path my_massive_log.log
+   ```
+4. **Security Note**: On macOS, you may need to right-click the app and select "Open" the first time, or go to `System Settings > Privacy & Security` and click "Open Anyway".
 
 | Platform | Download |
 |----------|----------|
-| **macOS** | [Download for macOS](https://github.com/DevDonzo/tachyon/releases/latest) |
-| **Windows** | [Download for Windows](https://github.com/DevDonzo/tachyon/releases/latest) |
-| **Linux** | [Download for Linux](https://github.com/DevDonzo/tachyon/releases/latest) |
+| **macOS** | [Download for macOS (.zip)](https://github.com/DevDonzo/tachyon/releases/latest) |
+| **Windows** | [Download for Windows (.zip)](https://github.com/DevDonzo/tachyon/releases/latest) |
+| **Linux** | [Download for Linux (.zip)](https://github.com/DevDonzo/tachyon/releases/latest) |
 
 ## Performance Goals
 

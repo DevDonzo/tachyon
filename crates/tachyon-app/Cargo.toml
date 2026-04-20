@@ -11,5 +11,6 @@ tachyon-core = { path = "../tachyon-core" }
 tachyon-ingest = { path = "../tachyon-ingest" }
 tachyon-render = { path = "../tachyon-render" }
 tachyon-search = { path = "../tachyon-search" }
+tachyon-trace = { path = "../tachyon-trace" }
 tracing.workspace = true
 tracing-subscriber.workspace = true
