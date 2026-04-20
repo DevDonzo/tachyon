@@ -7,7 +7,7 @@
 
 Tachyon aims to provide a "Zed-tier" experience—fluid, responsive, and impossibly fast—by leveraging modern systems engineering, memory-mapped I/O, and GPU-accelerated rendering.
 
-## 🚀 Performance Goals
+## Performance Goals
 
 Tachyon is built with a performance-first mindset:
 - **Instant Interaction:** Open 100GB+ files and start scrolling in < 500ms.
@@ -15,7 +15,7 @@ Tachyon is built with a performance-first mindset:
 - **Fluid UI:** Target 120 FPS rendering for smooth navigation and filtering.
 - **Bounded Memory:** Zero-copy file access using `memmap2` to keep memory usage low regardless of file size.
 
-## ✨ Key Features
+## Key Features
 
 - **Massive File Support:** Seamlessly handle logs and traces that exceed available RAM.
 - **Virtualized Viewport:** Only the visible region is rendered, ensuring constant-time interaction regardless of file size.
@@ -23,7 +23,7 @@ Tachyon is built with a performance-first mindset:
 - **Trace Visualization:** A high-performance timeline view for distributed traces (OTLP/JSON).
 - **Modern UI:** A clean, GPU-accelerated interface built for low-latency feedback.
 
-## 🏗️ Architecture
+## Architecture
 
 Tachyon is structured as a multi-crate Rust workspace to ensure modularity and testability:
 
@@ -37,7 +37,7 @@ Tachyon is structured as a multi-crate Rust workspace to ensure modularity and t
 | `tachyon-app` | UI orchestration and application shell. |
 | `tachyon-bench` | Reproducible performance benchmarks and profiling. |
 
-## 🛠️ Getting Started
+## Getting Started
 
 ### Prerequisites
 - [Rust](https://www.rust-lang.org/tools/install) (2024 edition)
@@ -52,7 +52,7 @@ cargo build --release
 cargo bench -p tachyon-bench
 ```
 
-## 🗺️ Roadmap
+## Roadmap
 
 - [ ] **Phase 1:** Parallel newline indexing and basic seeking.
 - [ ] **Phase 2:** Virtualized viewport with smooth scrolling.
@@ -60,6 +60,6 @@ cargo bench -p tachyon-bench
 - [ ] **Phase 4:** GPU-accelerated text rendering optimizations.
 - [ ] **Phase 5:** OTLP/JSON trace timeline support.
 
-## ⚖️ License
+## License
 
 Distributed under the MIT License. See `LICENSE` for more information.
