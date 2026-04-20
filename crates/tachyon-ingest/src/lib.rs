@@ -1,6 +1,9 @@
 use memmap2::{Mmap, MmapOptions};
 use rayon::prelude::*;
-use std::path::{Path, PathBuf};
+use std::{
+    ops::Range,
+    path::{Path, PathBuf},
+};
 use tachyon_core::{ByteOffset, ByteRange, LineNumber, Result, TachyonError};
 
 pub const DEFAULT_CHUNK_SIZE: usize = 16 * 1024 * 1024;
@@ -8,6 +11,13 @@ pub const DEFAULT_CHUNK_SIZE: usize = 16 * 1024 * 1024;
 pub struct MappedFile {
     path: PathBuf,
     mmap: Mmap,
+}
+
+#[derive(Debug, Clone, Copy)]
+pub struct LineSlice<'a> {
+    pub line: LineNumber,
+    pub byte_range: ByteRange,
+    pub bytes: &'a [u8],
 }
 
 impl MappedFile {
@@ -49,6 +59,41 @@ impl MappedFile {
 
     pub fn build_newline_index(&self, chunk_size: usize) -> NewlineIndex {
         NewlineIndex::from_bytes_parallel(self.bytes(), chunk_size)
+    }
+
+    pub fn line_slice<'a>(
+        &'a self,
+        index: &NewlineIndex,
+        line: LineNumber,
+    ) -> Result<LineSlice<'a>> {
+        let byte_range = index.line_byte_range(line)?;
+        let bytes = self.slice(byte_range)?;
+        Ok(LineSlice {
+            line,
+            byte_range,
+            bytes,
+        })
+    }
+
+    pub fn line_window<'a>(
+        &'a self,
+        index: &NewlineIndex,
+        lines: Range<LineNumber>,
+    ) -> Result<Vec<LineSlice<'a>>> {
+        let total = index.total_lines();
+        if lines.start.0 > lines.end.0 || lines.end.0 > total {
+            return Err(TachyonError::InvalidLineRange {
+                start: lines.start.0,
+                end: lines.end.0,
+                total,
+            });
+        }
+
+        let mut result = Vec::with_capacity((lines.end.0 - lines.start.0) as usize);
+        for line in lines.start.0..lines.end.0 {
+            result.push(self.line_slice(index, LineNumber(line))?);
+        }
+        Ok(result)
     }
 }
 
@@ -222,5 +267,34 @@ mod tests {
             .slice(ByteRange::new(ByteOffset(0), ByteOffset(6)).unwrap())
             .unwrap();
         assert_eq!(slice, b"line-1");
+    }
+
+    #[test]
+    fn line_window_reads_requested_range() {
+        let mut file = NamedTempFile::new().unwrap();
+        file.write_all(b"zero\none\ntwo\nthree").unwrap();
+        let mapped = MappedFile::open(file.path()).unwrap();
+        let index = mapped.build_newline_index(4);
+
+        let window = mapped
+            .line_window(&index, LineNumber(1)..LineNumber(3))
+            .unwrap();
+        assert_eq!(window.len(), 2);
+        assert_eq!(window[0].line, LineNumber(1));
+        assert_eq!(window[0].bytes, b"one");
+        assert_eq!(window[1].line, LineNumber(2));
+        assert_eq!(window[1].bytes, b"two");
+    }
+
+    #[test]
+    fn line_window_rejects_invalid_range() {
+        let index = NewlineIndex::from_bytes_parallel(b"a\nb\nc", 2);
+        let mut file = NamedTempFile::new().unwrap();
+        file.write_all(b"a\nb\nc").unwrap();
+        let mapped = MappedFile::open(file.path()).unwrap();
+        let err = mapped
+            .line_window(&index, LineNumber(3)..LineNumber(2))
+            .unwrap_err();
+        assert!(matches!(err, TachyonError::InvalidLineRange { .. }));
     }
 }

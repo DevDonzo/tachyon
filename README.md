@@ -2,6 +2,8 @@
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Rust](https://img.shields.io/badge/rust-2024%2B-orange.svg)](https://www.rust-lang.org/)
+[![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+[![Release](../../actions/workflows/release.yml/badge.svg)](../../actions/workflows/release.yml)
 
 **Tachyon** is a high-performance desktop log and trace explorer built in Rust. It is designed for developers and SREs who need to navigate, search, and analyze massive log files (100GB+) with zero latency.
 
@@ -56,11 +58,17 @@ cargo build --release
 cargo bench -p tachyon-bench
 ```
 
+## CI/CD
+
+GitHub Actions now provides:
+- **CI (`.github/workflows/ci.yml`)**: format check, clippy, tests, release-mode workspace build, and perf smoke on main/manual runs.
+- **CD (`.github/workflows/release.yml`)**: builds `tachyon-app` binaries for Linux/macOS/Windows and publishes them to GitHub Releases for `v*` tags.
+
 ## Roadmap
 
-- [ ] **Phase 1:** Parallel newline indexing and basic seeking.
-- [ ] **Phase 2:** Virtualized viewport with smooth scrolling.
-- [ ] **Phase 3:** High-speed streaming search engine.
+- [x] **Phase 1 (foundation):** Parallel newline indexing and basic seeking.
+- [x] **Phase 2 (foundation):** Virtualized viewport ranges, jump/scroll controls, and bounded window fetches.
+- [x] **Phase 3 (foundation):** Streaming search batches with visible-region priority, parallel background chunk scans, and cancellation support.
 - [ ] **Phase 4:** GPU-accelerated text rendering optimizations.
 - [ ] **Phase 5:** OTLP/JSON trace timeline support.
 

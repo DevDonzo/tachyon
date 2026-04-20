@@ -18,9 +18,13 @@ impl Viewport {
     }
 
     pub fn scroll_lines(&mut self, delta: i64, total_lines: u64) {
-        let max_top = total_lines.saturating_sub(self.visible_rows as u64);
+        let max_top = self.max_top_line(total_lines);
         let unclamped = self.top_line.0 as i64 + delta;
         self.top_line = LineNumber(unclamped.clamp(0, max_top as i64) as u64);
+    }
+
+    pub fn jump_to_line(&mut self, target_line: LineNumber, total_lines: u64) {
+        self.top_line = LineNumber(target_line.0.min(self.max_top_line(total_lines)));
     }
 
     pub fn visible_line_range(&self, total_lines: u64) -> Range<LineNumber> {
@@ -34,6 +38,10 @@ impl Viewport {
         let start = self.top_line.0.saturating_sub(overscan).min(total_lines);
         let end = (self.top_line.0 + self.visible_rows as u64 + overscan).min(total_lines);
         LineNumber(start)..LineNumber(end)
+    }
+
+    fn max_top_line(&self, total_lines: u64) -> u64 {
+        total_lines.saturating_sub(self.visible_rows as u64)
     }
 }
 
@@ -64,5 +72,12 @@ mod tests {
             viewport.fetch_line_range(100),
             LineNumber(15)..LineNumber(35)
         );
+    }
+
+    #[test]
+    fn jump_to_line_is_clamped() {
+        let mut viewport = Viewport::new(10, 3);
+        viewport.jump_to_line(LineNumber(42), 30);
+        assert_eq!(viewport.top_line, LineNumber(20));
     }
 }

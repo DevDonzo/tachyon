@@ -6,6 +6,8 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
+crossbeam-channel.workspace = true
+rayon.workspace = true
 regex.workspace = true
 tachyon-core = { path = "../tachyon-core" }
 tachyon-ingest = { path = "../tachyon-ingest" }

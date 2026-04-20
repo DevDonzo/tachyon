@@ -97,6 +97,8 @@ pub enum TachyonError {
     InvalidByteRange { start: u64, end: u64 },
     #[error("line out of bounds: requested={requested}, total={total}")]
     LineOutOfBounds { requested: u64, total: u64 },
+    #[error("invalid line range: start={start}, end={end}, total={total}")]
+    InvalidLineRange { start: u64, end: u64, total: u64 },
     #[error("invalid query: {0}")]
     InvalidQuery(String),
     #[error("parse error: {0}")]
