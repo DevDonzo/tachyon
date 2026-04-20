@@ -5,7 +5,7 @@
 
 **Tachyon** is a high-performance desktop log and trace explorer built in Rust. It is designed for developers and SREs who need to navigate, search, and analyze massive log files (100GB+) with zero latency.
 
-Tachyon aims to provide a "Zed-tier" experience—fluid, responsive, and impossibly fast—by leveraging modern systems engineering, memory-mapped I/O, and GPU-accelerated rendering.
+Tachyon aims to provide a fluid, responsive, and impossibly fast experience by leveraging modern systems engineering, memory-mapped I/O, and GPU-accelerated rendering.
 
 ## Performance Goals
 

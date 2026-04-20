@@ -12,3 +12,5 @@ release/
 
 # Environment
 .env
+PROJECTS.md
+AGENTS.md
