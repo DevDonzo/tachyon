@@ -100,21 +100,21 @@ fn find_substring_offsets(
         return Vec::new();
     }
 
-    let needle_storage;
-    let haystack_storage;
-    let (haystack_ref, needle_ref): (&[u8], &[u8]) = if case_sensitive {
-        (haystack, needle)
-    } else {
-        haystack_storage = haystack
-            .iter()
-            .map(u8::to_ascii_lowercase)
-            .collect::<Vec<_>>();
-        needle_storage = needle
-            .iter()
-            .map(u8::to_ascii_lowercase)
-            .collect::<Vec<_>>();
-        (&haystack_storage, &needle_storage)
-    };
+    if case_sensitive {
+        return memchr::memmem::find_iter(haystack, needle)
+            .map(|start| start..start + needle.len())
+            .collect();
+    }
+
+    let haystack_storage = haystack
+        .iter()
+        .map(u8::to_ascii_lowercase)
+        .collect::<Vec<_>>();
+    let needle_storage = needle
+        .iter()
+        .map(u8::to_ascii_lowercase)
+        .collect::<Vec<_>>();
+    let (haystack_ref, needle_ref): (&[u8], &[u8]) = (&haystack_storage, &needle_storage);
 
     let mut ranges = Vec::new();
     let mut start = 0usize;
@@ -175,38 +175,49 @@ pub fn search_streaming(
     let error_slot = Arc::new(Mutex::new(None::<TachyonError>));
     let chunk_ranges = build_background_chunks(total_lines, visible, chunk_lines);
 
-    chunk_ranges.into_par_iter().for_each_with(
-        (sender, Arc::clone(&error_slot)),
-        |state, chunk| {
-            let (sender, error_slot) = state;
-            if cancelled.load(Ordering::Relaxed) || remaining.load(Ordering::Relaxed) == 0 {
-                return;
-            }
-
-            match collect_chunk_hits(data, index, &compiled, chunk.clone(), &remaining, cancelled) {
-                Ok(hits) if !hits.is_empty() => {
-                    let batch = SearchBatch {
-                        stage: SearchStage::Background,
-                        line_range: LineNumber(chunk.start)..LineNumber(chunk.end),
-                        hits,
-                    };
-                    let _ = sender.send(batch);
-                }
-                Ok(_) => {}
-                Err(error) => {
-                    if let Ok(mut slot) = error_slot.lock() {
-                        *slot = Some(error);
+    std::thread::scope(|scope| {
+        let error_slot = Arc::clone(&error_slot);
+        scope.spawn(move || {
+            chunk_ranges
+                .into_par_iter()
+                .for_each_with((sender, error_slot), |state, chunk| {
+                    let (sender, error_slot) = state;
+                    if cancelled.load(Ordering::Relaxed) || remaining.load(Ordering::Relaxed) == 0 {
+                        return;
                     }
-                    cancelled.store(true, Ordering::Relaxed);
-                }
-            }
-        },
-    );
 
-    while let Ok(batch) = receiver.try_recv() {
-        emitted_hits += batch.hits.len();
-        on_batch(batch);
-    }
+                    match collect_chunk_hits(
+                        data,
+                        index,
+                        &compiled,
+                        chunk.clone(),
+                        &remaining,
+                        cancelled,
+                    ) {
+                        Ok(hits) if !hits.is_empty() => {
+                            let batch = SearchBatch {
+                                stage: SearchStage::Background,
+                                line_range: LineNumber(chunk.start)..LineNumber(chunk.end),
+                                hits,
+                            };
+                            let _ = sender.send(batch);
+                        }
+                        Ok(_) => {}
+                        Err(error) => {
+                            if let Ok(mut slot) = error_slot.lock() {
+                                *slot = Some(error);
+                            }
+                            cancelled.store(true, Ordering::Relaxed);
+                        }
+                    }
+                });
+        });
+
+        while let Ok(batch) = receiver.recv() {
+            emitted_hits += batch.hits.len();
+            on_batch(batch);
+        }
+    });
 
     if let Ok(mut slot) = error_slot.lock()
         && let Some(error) = slot.take()
@@ -297,6 +308,14 @@ fn stream_line_range(
         return Ok(());
     }
 
+    if let CompiledQuery::Substring {
+        needle,
+        case_sensitive: true,
+    } = context.compiled
+    {
+        return stream_substring_range(context, start_line..end_line, needle, stage, on_batch);
+    }
+
     let mut batch_hits = Vec::with_capacity(context.batch_hit_target);
     let mut batch_start = None::<u64>;
     let mut current_line = start_line;
@@ -356,6 +375,14 @@ fn collect_chunk_hits(
     remaining: &AtomicUsize,
     cancelled: &AtomicBool,
 ) -> Result<Vec<SearchHit>> {
+    if let CompiledQuery::Substring {
+        needle,
+        case_sensitive: true,
+    } = compiled
+    {
+        return collect_substring_range_hits(data, index, chunk, needle, remaining, cancelled);
+    }
+
     let mut hits = Vec::new();
     for line_idx in chunk {
         if cancelled.load(Ordering::Relaxed) || remaining.load(Ordering::Relaxed) == 0 {
@@ -379,10 +406,143 @@ fn collect_chunk_hits(
     Ok(hits)
 }
 
+fn stream_substring_range(
+    context: &SearchScanContext<'_>,
+    line_range: Range<u64>,
+    needle: &[u8],
+    stage: SearchStage,
+    mut on_batch: impl FnMut(SearchBatch),
+) -> Result<()> {
+    let byte_range = line_range_byte_bounds(context.index, line_range.clone())?;
+    if byte_range.start >= byte_range.end {
+        return Ok(());
+    }
+
+    let mut batch_hits = Vec::with_capacity(context.batch_hit_target);
+    let mut batch_start = None::<u64>;
+    let mut current_line = line_range.start;
+    let mut current_line_range = context.index.line_byte_range(LineNumber(current_line))?;
+    let base = byte_range.start;
+    let bytes = &context.data[byte_range.start as usize..byte_range.end as usize];
+
+    for local_start in memchr::memmem::find_iter(bytes, needle) {
+        if context.cancelled.load(Ordering::Relaxed) {
+            break;
+        }
+
+        let absolute_start = base + local_start as u64;
+        let absolute_end = absolute_start + needle.len() as u64;
+        while current_line + 1 < line_range.end && absolute_start > current_line_range.end.0 {
+            current_line += 1;
+            current_line_range = context.index.line_byte_range(LineNumber(current_line))?;
+        }
+
+        if absolute_start < current_line_range.start.0 || absolute_end > current_line_range.end.0 {
+            continue;
+        }
+        if !try_take_hit_slot(context.remaining) {
+            break;
+        }
+
+        if batch_start.is_none() {
+            batch_start = Some(current_line);
+        }
+
+        batch_hits.push(SearchHit {
+            line: LineNumber(current_line),
+            byte_range: ByteRange::new(ByteOffset(absolute_start), ByteOffset(absolute_end))?,
+        });
+
+        if batch_hits.len() >= context.batch_hit_target {
+            let range_start = batch_start.unwrap_or(current_line);
+            on_batch(SearchBatch {
+                stage,
+                line_range: LineNumber(range_start)..LineNumber(current_line + 1),
+                hits: std::mem::take(&mut batch_hits),
+            });
+            batch_start = None;
+        }
+    }
+
+    if !batch_hits.is_empty() {
+        let range_start = batch_start.unwrap_or(line_range.start);
+        on_batch(SearchBatch {
+            stage,
+            line_range: LineNumber(range_start)..LineNumber(current_line + 1),
+            hits: batch_hits,
+        });
+    }
+
+    Ok(())
+}
+
+fn collect_substring_range_hits(
+    data: &[u8],
+    index: &NewlineIndex,
+    line_range: Range<u64>,
+    needle: &[u8],
+    remaining: &AtomicUsize,
+    cancelled: &AtomicBool,
+) -> Result<Vec<SearchHit>> {
+    let byte_range = line_range_byte_bounds(index, line_range.clone())?;
+    if byte_range.start >= byte_range.end {
+        return Ok(Vec::new());
+    }
+
+    let mut hits = Vec::new();
+    let base = byte_range.start;
+    let bytes = &data[byte_range.start as usize..byte_range.end as usize];
+    let mut current_line = line_range.start;
+    let mut current_line_range = index.line_byte_range(LineNumber(current_line))?;
+
+    for local_start in memchr::memmem::find_iter(bytes, needle) {
+        if cancelled.load(Ordering::Relaxed) {
+            break;
+        }
+
+        let absolute_start = base + local_start as u64;
+        let absolute_end = absolute_start + needle.len() as u64;
+        while current_line + 1 < line_range.end && absolute_start > current_line_range.end.0 {
+            current_line += 1;
+            current_line_range = index.line_byte_range(LineNumber(current_line))?;
+        }
+
+        if absolute_start < current_line_range.start.0 || absolute_end > current_line_range.end.0 {
+            continue;
+        }
+        if !try_take_hit_slot(remaining) {
+            break;
+        }
+
+        hits.push(SearchHit {
+            line: LineNumber(current_line),
+            byte_range: ByteRange::new(ByteOffset(absolute_start), ByteOffset(absolute_end))?,
+        });
+    }
+    Ok(hits)
+}
+
+fn line_range_byte_bounds(index: &NewlineIndex, line_range: Range<u64>) -> Result<Range<u64>> {
+    if line_range.start >= line_range.end {
+        return Ok(0..0);
+    }
+
+    let start = index.line_to_byte(LineNumber(line_range.start))?.0;
+    let end = if line_range.end >= index.total_lines() {
+        index.file_len()
+    } else {
+        index
+            .line_to_byte(LineNumber(line_range.end))?
+            .0
+            .saturating_sub(1)
+    };
+    Ok(start..end)
+}
+
 fn try_take_hit_slot(remaining: &AtomicUsize) -> bool {
     remaining
         .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |slots| {
-            (slots > 0).then_some(slots - 1)
+            if slots > 0 { Some(slots - 1) } else { None }
         })
         .is_ok()
 }

@@ -9,6 +9,7 @@ authors.workspace = true
 tachyon-core = { path = "../tachyon-core" }
 tachyon-ingest = { path = "../tachyon-ingest" }
 tachyon-render = { path = "../tachyon-render" }
+tachyon-search = { path = "../tachyon-search" }
 tachyon-trace = { path = "../tachyon-trace" }
 
 [dev-dependencies]
@@ -16,6 +17,10 @@ criterion.workspace = true
 
 [[bench]]
 name = "newline_index"
+harness = false
+
+[[bench]]
+name = "search"
 harness = false
 
 [[bench]]

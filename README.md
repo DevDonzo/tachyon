@@ -10,21 +10,24 @@
 
 ---
 
-**Tachyon** is a specialized workstation for developers and SREs who need to navigate, search, and analyze massive log files (100GB+) with zero latency. 
+**Tachyon** is a specialized workstation for developers and SREs who need to navigate, search, and analyze massive log files (100GB+) with zero latency.
 
 It is an independent research project focused on high-performance systems engineering, zero-copy data processing, and GPU-accelerated visualization.
 
-## 📥 Download
+## Download
 
-Tachyon is currently in **Beta (CLI Preview)**. The graphical interface is currently under development.
+Tachyon ships as a desktop app with the existing logo as its app/window icon. The same binary also supports CLI smoke-test and automation workflows.
 
 1. Download the `.zip` for your platform from the [Releases](https://github.com/DevDonzo/tachyon/releases) page.
 2. Unzip the file.
-3. **macOS/Linux**: Open your Terminal, drag the file in, and add a path to a log file:
+3. Launch the desktop app:
+   - **macOS**: open `Tachyon.app`.
+   - **Linux/Windows**: run `tachyon-app` without arguments.
+4. CLI mode remains available by passing a log path:
    ```bash
-   ./tachyon-app --path my_massive_log.log
+   ./tachyon-app my_massive_log.log --search request_id --print-render-plan
    ```
-4. **Security Note**: On macOS, you may need to right-click the app and select "Open" the first time, or go to `System Settings > Privacy & Security` and click "Open Anyway".
+5. **Security Note**: On macOS, you may need to right-click the app and select "Open" the first time, or go to `System Settings > Privacy & Security` and click "Open Anyway".
 
 | Platform | Download |
 |----------|----------|
@@ -46,7 +49,7 @@ Tachyon is built with a performance-first mindset:
 - **Virtualized Viewport:** Only the visible region is rendered, ensuring constant-time interaction regardless of file size.
 - **Parallel Search:** Chunk-parallel substring and regex search with progressive result streaming.
 - **Trace Visualization:** A high-performance timeline view for distributed traces (OTLP/JSON).
-- **Modern UI:** A clean, GPU-accelerated interface built for low-latency feedback.
+- **Modern Desktop UI:** Native app shell with recent files, saved sessions, command palette, search, jump-to-line, trace timeline, and benchmark report view.
 
 ## Architecture
 
@@ -74,10 +77,38 @@ cd tachyon
 cargo build --release
 ```
 
+### Running
+```bash
+# Desktop app
+cargo run -p tachyon-app
+
+# CLI automation path
+cargo run -p tachyon-app -- path/to/log.txt --search request_id
+```
+
 ### Running Benchmarks
 ```bash
 cargo bench -p tachyon-bench
 ```
+
+### Performance Report
+
+The reproducible smoke harness covers the core hot paths:
+
+```bash
+./scripts/perf_smoke.sh
+./scripts/bench_report.sh
+```
+
+Latest verified local smoke baseline:
+
+| Benchmark | Observed result | Target |
+|---|---:|---:|
+| `newline_index/parallel_chunk_scan` | ~33.6-37.5 GiB/s | 3-5 GiB/s |
+| `search/substring_rare_match_visible_first` | ~87.1-92.3 GiB/s | 1+ GiB/s |
+| `search/regex_visible_first` | ~3.5-3.7 GiB/s | 1+ GiB/s |
+| `render_frame_plan` | ~43.5-44.7 us | frame-budget friendly |
+| `trace_window_query` | ~660-666 us | sub-frame query latency |
 
 ## Roadmap
 
@@ -87,6 +118,7 @@ cargo bench -p tachyon-bench
 - [x] **Phase 3:** High-speed streaming search engine.
 - [x] **Phase 4:** Render-frame planning with dirty upload ranges, glyph upload budgeting, and highlight batching.
 - [x] **Phase 5:** OTLP/JSON trace indexing with lane assignment and time-window timeline queries.
+- [x] **Phase 6:** Desktop app polish: command palette, recent files, saved sessions, branded icon assets, error surfacing, release packaging, and benchmark report generation.
 
 ## License
 

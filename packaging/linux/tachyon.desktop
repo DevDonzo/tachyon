@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Tachyon
+Comment=High-performance local log and trace explorer
+Exec=tachyon-app --gui
+Icon=tachyon
+Terminal=false
+Categories=Development;Utility;
