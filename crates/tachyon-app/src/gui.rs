@@ -469,66 +469,62 @@ impl eframe::App for TachyonGui {
             self.command_open = true;
         }
 
-        egui::TopBottomPanel::top("top_bar")
-            .inner_margin(egui::Margin::symmetric(12.0, 8.0))
-            .show(ctx, |ui| {
-                ui.horizontal(|ui| {
-                    if let Some(logo) = &self.logo {
-                        ui.image((logo.id(), Vec2::splat(24.0)));
-                    }
-                    ui.heading(RichText::new("TACHYON").strong().letter_spacing(1.2));
-                    ui.add_space(20.0);
+        egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
+            ui.horizontal(|ui| {
+                if let Some(logo) = &self.logo {
+                    ui.image((logo.id(), Vec2::splat(24.0)));
+                }
+                ui.heading(RichText::new("TACHYON").strong().extra_letter_spacing(1.2));
+                ui.add_space(20.0);
 
-                    ui.style_mut().spacing.button_padding = Vec2::new(8.0, 4.0);
+                ui.style_mut().spacing.button_padding = Vec2::new(8.0, 4.0);
 
-                    if ui.add(egui::Button::new("📂 Open Log")).clicked() {
-                        self.pick_log_file();
-                    }
-                    if ui.add(egui::Button::new("⏱ Open Trace")).clicked() {
-                        self.pick_trace_file();
-                    }
+                if ui.add(egui::Button::new("📂 Open Log")).clicked() {
+                    self.pick_log_file();
+                }
+                if ui.add(egui::Button::new("⏱ Open Trace")).clicked() {
+                    self.pick_trace_file();
+                }
+                ui.add_space(10.0);
+                if ui.add(egui::Button::new("⌨ Command (⌘K)")).clicked() {
+                    self.command_open = true;
+                }
+
+                ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
                     ui.add_space(10.0);
-                    if ui.add(egui::Button::new("⌨ Command (⌘K)")).clicked() {
-                        self.command_open = true;
-                    }
-
-                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
-                        ui.add_space(10.0);
-                        ui.selectable_value(&mut self.active_tab, AppTab::Bench, "Bench");
-                        ui.selectable_value(&mut self.active_tab, AppTab::Trace, "Trace");
-                        ui.selectable_value(&mut self.active_tab, AppTab::Logs, "Logs");
-                    });
+                    ui.selectable_value(&mut self.active_tab, AppTab::Bench, "Bench");
+                    ui.selectable_value(&mut self.active_tab, AppTab::Trace, "Trace");
+                    ui.selectable_value(&mut self.active_tab, AppTab::Logs, "Logs");
                 });
             });
+        });
 
-        egui::TopBottomPanel::bottom("status_bar")
-            .inner_margin(egui::Margin::symmetric(10.0, 4.0))
-            .show(ctx, |ui| {
-                ui.horizontal_wrapped(|ui| {
-                    ui.visuals_mut().override_text_color = Some(Color32::from_gray(160));
-                    ui.label(&self.status);
-                    if let Some(error) = &self.error {
-                        ui.separator();
-                        ui.colored_label(Color32::from_rgb(230, 90, 90), error);
-                        if ui.button("Clear").clicked() {
-                            self.error = None;
-                        }
+        egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
+            ui.horizontal_wrapped(|ui| {
+                ui.visuals_mut().override_text_color = Some(Color32::from_gray(160));
+                ui.label(&self.status);
+                if let Some(error) = &self.error {
+                    ui.separator();
+                    ui.colored_label(Color32::from_rgb(230, 90, 90), error);
+                    if ui.button("Clear").clicked() {
+                        self.error = None;
                     }
-                });
+                }
             });
+        });
 
         egui::SidePanel::left("sessions")
             .resizable(true)
             .default_width(220.0)
             .frame(
-                egui::Frame::none()
+                egui::Frame::NONE
                     .fill(ctx.style().visuals.window_fill())
-                    .inner_margin(12.0),
+                    .inner_margin(12),
             )
             .show(ctx, |ui| self.show_sidebar(ui));
 
         egui::CentralPanel::default()
-            .frame(egui::Frame::none().inner_margin(12.0))
+            .frame(egui::Frame::NONE.inner_margin(12))
             .show(ctx, |ui| match self.active_tab {
                 AppTab::Logs => self.show_logs(ui),
                 AppTab::Trace => self.show_trace(ui),
@@ -1022,17 +1018,18 @@ fn setup_custom_styles(ctx: &egui::Context) {
     visuals.panel_fill = Color32::from_rgb(15, 23, 42); // Slate 950
     visuals.window_fill = Color32::from_rgb(22, 28, 45); // Slightly lighter for sidebar/windows
     visuals.widgets.noninteractive.bg_fill = visuals.panel_fill;
+    visuals.widgets.noninteractive.corner_radius = egui::CornerRadius::same(6);
     visuals.widgets.noninteractive.bg_stroke =
         egui::Stroke::new(1.0, Color32::from_rgb(30, 41, 59)); // Slate 800
 
     visuals.widgets.inactive.bg_fill = Color32::from_rgb(30, 41, 59); // Slate 800
-    visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);
+    visuals.widgets.inactive.corner_radius = egui::CornerRadius::same(6);
 
     visuals.widgets.hovered.bg_fill = Color32::from_rgb(51, 65, 85); // Slate 700
-    visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
+    visuals.widgets.hovered.corner_radius = egui::CornerRadius::same(6);
 
     visuals.widgets.active.bg_fill = Color32::from_rgb(56, 189, 248); // Sky 400
-    visuals.widgets.active.rounding = egui::Rounding::same(6.0);
+    visuals.widgets.active.corner_radius = egui::CornerRadius::same(6);
 
     visuals.selection.bg_fill = Color32::from_rgb(56, 189, 248).gamma_multiply(0.3);
 
