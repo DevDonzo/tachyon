@@ -80,6 +80,7 @@ impl TachyonGui {
         initial_path: Option<PathBuf>,
         chunk_size: usize,
     ) -> Self {
+        setup_custom_styles(&cc.egui_ctx);
         let logo = load_logo_texture(&cc.egui_ctx);
         let (config, config_path) = load_config();
         let mut app = Self {
@@ -468,52 +469,71 @@ impl eframe::App for TachyonGui {
             self.command_open = true;
         }
 
-        egui::TopBottomPanel::top("top_bar").show(ctx, |ui| {
-            ui.horizontal(|ui| {
-                if let Some(logo) = &self.logo {
-                    ui.image((logo.id(), Vec2::splat(28.0)));
-                }
-                ui.heading("Tachyon");
-                ui.separator();
-                if ui.button("Open Log").clicked() {
-                    self.pick_log_file();
-                }
-                if ui.button("Open Trace").clicked() {
-                    self.pick_trace_file();
-                }
-                if ui.button("Command").clicked() {
-                    self.command_open = true;
-                }
-                ui.separator();
-                ui.selectable_value(&mut self.active_tab, AppTab::Logs, "Logs");
-                ui.selectable_value(&mut self.active_tab, AppTab::Trace, "Trace");
-                ui.selectable_value(&mut self.active_tab, AppTab::Bench, "Bench");
-            });
-        });
-
-        egui::TopBottomPanel::bottom("status_bar").show(ctx, |ui| {
-            ui.horizontal_wrapped(|ui| {
-                ui.label(&self.status);
-                if let Some(error) = &self.error {
-                    ui.separator();
-                    ui.colored_label(Color32::from_rgb(230, 90, 90), error);
-                    if ui.button("Clear").clicked() {
-                        self.error = None;
+        egui::TopBottomPanel::top("top_bar")
+            .inner_margin(egui::Margin::symmetric(12.0, 8.0))
+            .show(ctx, |ui| {
+                ui.horizontal(|ui| {
+                    if let Some(logo) = &self.logo {
+                        ui.image((logo.id(), Vec2::splat(24.0)));
                     }
-                }
+                    ui.heading(RichText::new("TACHYON").strong().letter_spacing(1.2));
+                    ui.add_space(20.0);
+
+                    ui.style_mut().spacing.button_padding = Vec2::new(8.0, 4.0);
+
+                    if ui.add(egui::Button::new("📂 Open Log")).clicked() {
+                        self.pick_log_file();
+                    }
+                    if ui.add(egui::Button::new("⏱ Open Trace")).clicked() {
+                        self.pick_trace_file();
+                    }
+                    ui.add_space(10.0);
+                    if ui.add(egui::Button::new("⌨ Command (⌘K)")).clicked() {
+                        self.command_open = true;
+                    }
+
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        ui.add_space(10.0);
+                        ui.selectable_value(&mut self.active_tab, AppTab::Bench, "Bench");
+                        ui.selectable_value(&mut self.active_tab, AppTab::Trace, "Trace");
+                        ui.selectable_value(&mut self.active_tab, AppTab::Logs, "Logs");
+                    });
+                });
             });
-        });
+
+        egui::TopBottomPanel::bottom("status_bar")
+            .inner_margin(egui::Margin::symmetric(10.0, 4.0))
+            .show(ctx, |ui| {
+                ui.horizontal_wrapped(|ui| {
+                    ui.visuals_mut().override_text_color = Some(Color32::from_gray(160));
+                    ui.label(&self.status);
+                    if let Some(error) = &self.error {
+                        ui.separator();
+                        ui.colored_label(Color32::from_rgb(230, 90, 90), error);
+                        if ui.button("Clear").clicked() {
+                            self.error = None;
+                        }
+                    }
+                });
+            });
 
         egui::SidePanel::left("sessions")
             .resizable(true)
-            .default_width(250.0)
+            .default_width(220.0)
+            .frame(
+                egui::Frame::none()
+                    .fill(ctx.style().visuals.window_fill())
+                    .inner_margin(12.0),
+            )
             .show(ctx, |ui| self.show_sidebar(ui));
 
-        egui::CentralPanel::default().show(ctx, |ui| match self.active_tab {
-            AppTab::Logs => self.show_logs(ui),
-            AppTab::Trace => self.show_trace(ui),
-            AppTab::Bench => self.show_bench(ui),
-        });
+        egui::CentralPanel::default()
+            .frame(egui::Frame::none().inner_margin(12.0))
+            .show(ctx, |ui| match self.active_tab {
+                AppTab::Logs => self.show_logs(ui),
+                AppTab::Trace => self.show_trace(ui),
+                AppTab::Bench => self.show_bench(ui),
+            });
 
         if self.command_open {
             self.show_command_palette(ctx);
@@ -523,25 +543,47 @@ impl eframe::App for TachyonGui {
 
 impl TachyonGui {
     fn show_sidebar(&mut self, ui: &mut egui::Ui) {
-        ui.heading("Sessions");
+        ui.label(
+            RichText::new("SESSIONS")
+                .small()
+                .strong()
+                .color(Color32::from_gray(120)),
+        );
+        ui.add_space(4.0);
         ui.horizontal(|ui| {
-            ui.add(TextEdit::singleline(&mut self.saved_session_name).hint_text("session name"));
+            ui.add(TextEdit::singleline(&mut self.saved_session_name).hint_text("Name..."));
             if ui.button("Save").clicked() {
                 self.save_current_session();
             }
         });
 
-        ui.separator();
-        ui.label(RichText::new("Saved").strong());
+        ui.add_space(12.0);
+        ui.label(
+            RichText::new("SAVED")
+                .small()
+                .strong()
+                .color(Color32::from_gray(120)),
+        );
         let sessions = self.config.saved_sessions.clone();
         for session in sessions {
-            if ui.button(&session.name).clicked() {
+            if ui
+                .add(egui::SelectableLabel::new(
+                    false,
+                    format!("📁 {}", session.name),
+                ))
+                .clicked()
+            {
                 self.load_session(session);
             }
         }
 
-        ui.separator();
-        ui.label(RichText::new("Recent").strong());
+        ui.add_space(12.0);
+        ui.label(
+            RichText::new("RECENT")
+                .small()
+                .strong()
+                .color(Color32::from_gray(120)),
+        );
         let recent_files = self.config.recent_files.clone();
         for path in recent_files {
             let label = path
@@ -549,7 +591,7 @@ impl TachyonGui {
                 .and_then(|name| name.to_str())
                 .unwrap_or_else(|| path.to_str().unwrap_or("file"));
             if ui
-                .button(label)
+                .add(egui::SelectableLabel::new(false, format!("📄 {}", label)))
                 .on_hover_text(path.display().to_string())
                 .clicked()
             {
@@ -559,22 +601,17 @@ impl TachyonGui {
     }
 
     fn show_logs(&mut self, ui: &mut egui::Ui) {
-        ui.horizontal_wrapped(|ui| {
-            ui.label("Search");
+        ui.horizontal(|ui| {
             let changed = ui
                 .add(
                     TextEdit::singleline(&mut self.search_text)
-                        .desired_width(280.0)
-                        .hint_text("substring or regex"),
+                        .desired_width(320.0)
+                        .hint_text("🔍 Search logs (regex or substring)..."),
                 )
                 .changed();
             ui.checkbox(&mut self.regex_search, "Regex");
-            ui.checkbox(&mut self.case_insensitive, "Case insensitive");
-            ui.add(
-                egui::DragValue::new(&mut self.max_hits)
-                    .range(1..=250_000)
-                    .prefix("max "),
-            );
+            ui.checkbox(&mut self.case_insensitive, "Aa");
+
             if changed
                 || ui.button("Run").clicked()
                 || ui.input(|input| input.key_pressed(Key::Enter))
@@ -582,31 +619,42 @@ impl TachyonGui {
                 self.last_search_key = None;
                 self.maybe_start_search();
             }
+
             ui.separator();
-            ui.label("Jump");
-            let jump_response =
-                ui.add(TextEdit::singleline(&mut self.jump_text).desired_width(90.0));
-            if ui.button("Go").clicked()
-                || (jump_response.lost_focus() && ui.input(|input| input.key_pressed(Key::Enter)))
-            {
+            ui.add(
+                TextEdit::singleline(&mut self.jump_text)
+                    .desired_width(60.0)
+                    .hint_text("Line"),
+            );
+            if ui.button("Jump").clicked() {
                 self.apply_jump();
+            }
+
+            if self.search_job.is_some() {
+                ui.add_space(8.0);
+                if ui.add(egui::Button::new("🚫 Cancel")).clicked() {
+                    self.cancel_search();
+                }
             }
         });
 
-        ui.horizontal_wrapped(|ui| {
-            ui.label(format!(
-                "hits: {} visible: {} background: {} batches: {}",
-                self.search_hits.len(),
-                self.visible_hits,
-                self.background_hits,
-                self.search_batches
-            ));
-            if self.search_job.is_some() && ui.button("Cancel Search").clicked() {
-                self.cancel_search();
-                self.status = "Search cancelled".to_owned();
-            }
-        });
+        if !self.search_hits.is_empty() || self.search_job.is_some() {
+            ui.add_space(4.0);
+            ui.label(
+                RichText::new(format!(
+                    "Hits: {} | Visible: {} | Background: {}",
+                    self.search_hits.len(),
+                    self.visible_hits,
+                    self.background_hits
+                ))
+                .small()
+                .color(Color32::from_gray(140)),
+            );
+        }
+
+        ui.add_space(8.0);
         ui.separator();
+        ui.add_space(8.0);
 
         let Some(loaded) = &mut self.loaded else {
             self.show_empty_state(ui);
@@ -660,15 +708,32 @@ impl TachyonGui {
 
     fn show_empty_state(&mut self, ui: &mut egui::Ui) {
         ui.vertical_centered(|ui| {
-            ui.add_space(80.0);
+            ui.add_space(ui.available_height() * 0.2);
             if let Some(logo) = &self.logo {
-                ui.image((logo.id(), Vec2::splat(96.0)));
+                ui.image((logo.id(), Vec2::splat(128.0)));
             }
-            ui.heading("Tachyon");
-            ui.label("Open a log file to start exploring.");
-            if ui.button("Open Log File").clicked() {
+            ui.add_space(16.0);
+            ui.heading(RichText::new("Welcome to Tachyon").strong());
+            ui.add_space(8.0);
+            ui.label(
+                RichText::new("High-performance observability workstation")
+                    .color(Color32::from_gray(160)),
+            );
+            ui.add_space(24.0);
+            if ui
+                .add(egui::Button::new(
+                    RichText::new("🚀 Open a Log File to Start").heading(),
+                ))
+                .clicked()
+            {
                 self.pick_log_file();
             }
+            ui.add_space(12.0);
+            ui.label(
+                RichText::new("Or drag and drop a file here")
+                    .small()
+                    .color(Color32::from_gray(100)),
+            );
         });
     }
 
@@ -948,4 +1013,32 @@ fn _path_label(path: &Path) -> &str {
         .and_then(|name| name.to_str())
         .or_else(|| path.to_str())
         .unwrap_or("file")
+}
+
+fn setup_custom_styles(ctx: &egui::Context) {
+    let mut visuals = egui::Visuals::dark();
+
+    // Zed-inspired slate palette
+    visuals.panel_fill = Color32::from_rgb(15, 23, 42);      // Slate 950
+    visuals.window_fill = Color32::from_rgb(22, 28, 45);     // Slightly lighter for sidebar/windows
+    visuals.widgets.noninteractive.bg_fill = visuals.panel_fill;
+    visuals.widgets.noninteractive.bg_stroke = egui::Stroke::new(1.0, Color32::from_rgb(30, 41, 59)); // Slate 800
+
+    visuals.widgets.inactive.bg_fill = Color32::from_rgb(30, 41, 59); // Slate 800
+    visuals.widgets.inactive.rounding = egui::Rounding::same(6.0);
+    
+    visuals.widgets.hovered.bg_fill = Color32::from_rgb(51, 65, 85);  // Slate 700
+    visuals.widgets.hovered.rounding = egui::Rounding::same(6.0);
+    
+    visuals.widgets.active.bg_fill = Color32::from_rgb(56, 189, 248); // Sky 400
+    visuals.widgets.active.rounding = egui::Rounding::same(6.0);
+
+    visuals.selection.bg_fill = Color32::from_rgb(56, 189, 248).gamma_multiply(0.3);
+    
+    ctx.set_visuals(visuals);
+
+    let mut style = (*ctx.style()).clone();
+    style.spacing.item_spacing = Vec2::new(8.0, 8.0);
+    style.spacing.button_padding = Vec2::new(10.0, 6.0);
+    ctx.set_style(style);
 }
