@@ -7,6 +7,7 @@ authors.workspace = true
 
 [dependencies]
 crossbeam-channel.workspace = true
+memchr.workspace = true
 rayon.workspace = true
 regex.workspace = true
 tachyon-core = { path = "../tachyon-core" }

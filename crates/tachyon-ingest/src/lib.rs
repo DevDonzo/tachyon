@@ -111,11 +111,11 @@ impl NewlineIndex {
             .enumerate()
             .map(|(chunk_idx, chunk)| {
                 let base = (chunk_idx * chunk_size) as u64;
-                chunk
-                    .iter()
-                    .enumerate()
-                    .filter_map(|(idx, byte)| (*byte == b'\n').then_some(base + idx as u64))
-                    .collect()
+                let mut offsets = Vec::new();
+                for offset in memchr::memchr_iter(b'\n', chunk) {
+                    offsets.push(base + offset as u64);
+                }
+                offsets
             })
             .collect();
 

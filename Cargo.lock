@@ -694,6 +694,7 @@ dependencies = [
 name = "tachyon-ingest"
 version = "0.1.0"
 dependencies = [
+ "memchr",
  "memmap2",
  "rayon",
  "tachyon-core",
@@ -712,6 +713,7 @@ name = "tachyon-search"
 version = "0.1.0"
 dependencies = [
  "crossbeam-channel",
+ "memchr",
  "rayon",
  "regex",
  "tachyon-core",

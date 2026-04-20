@@ -6,6 +6,7 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
+memchr.workspace = true
 memmap2.workspace = true
 rayon.workspace = true
 tachyon-core = { path = "../tachyon-core" }
