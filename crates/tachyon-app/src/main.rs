@@ -3,8 +3,9 @@ use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use tachyon_core::{LineNumber, Result, SearchQuery};
 use tachyon_ingest::{DEFAULT_CHUNK_SIZE, open_and_index};
-use tachyon_render::Viewport;
-use tachyon_search::{SearchConfig, SearchStage, search_streaming};
+use tachyon_render::{HighlightKind, HighlightSpan, RenderPipelineState, Viewport};
+use tachyon_search::{SearchConfig, SearchHit, SearchStage, search_streaming};
+use tachyon_trace::{TraceIndex, parse_spans_json};
 use tracing_subscriber::EnvFilter;
 
 #[derive(Debug, Parser)]
@@ -55,6 +56,33 @@ struct Args {
     /// Print individual search hits.
     #[arg(long, default_value_t = false)]
     print_search_hits: bool,
+    /// Print per-frame render plan output.
+    #[arg(long, default_value_t = false)]
+    print_render_plan: bool,
+    /// Number of simulated frames to plan.
+    #[arg(long, default_value_t = 1)]
+    render_sim_frames: u32,
+    /// Maximum number of glyph uploads permitted per frame.
+    #[arg(long, default_value_t = 256)]
+    max_glyph_uploads: usize,
+    /// Optional trace JSON/JSONL file for timeline querying.
+    #[arg(long)]
+    trace_json: Option<PathBuf>,
+    /// Optional trace window start (ns). Defaults to trace min start.
+    #[arg(long)]
+    trace_window_start_ns: Option<u64>,
+    /// Optional trace window end (ns). Defaults to trace max end.
+    #[arg(long)]
+    trace_window_end_ns: Option<u64>,
+    /// Maximum number of trace spans to return.
+    #[arg(long, default_value_t = 500)]
+    trace_max_spans: usize,
+    /// Print individual spans for the trace window.
+    #[arg(long, default_value_t = false)]
+    print_trace_spans: bool,
+    /// Print per-service track summaries.
+    #[arg(long, default_value_t = false)]
+    print_trace_tracks: bool,
 }
 
 fn main() {
@@ -104,7 +132,7 @@ fn run(args: Args) -> Result<()> {
     }
 
     if args.print_viewport {
-        let window = mapped.line_window(&index, fetch)?;
+        let window = mapped.line_window(&index, fetch.clone())?;
         for line_slice in window {
             let marker =
                 if line_slice.line.0 >= visible.start.0 && line_slice.line.0 < visible.end.0 {
@@ -120,6 +148,7 @@ fn run(args: Args) -> Result<()> {
         }
     }
 
+    let mut visible_search_hits = Vec::<SearchHit>::new();
     if let Some(search_pattern) = args.search {
         let query = if args.regex {
             SearchQuery::regex(search_pattern)?
@@ -149,7 +178,11 @@ fn run(args: Args) -> Result<()> {
                 let stage = batch.stage;
                 let hits = batch.hits;
                 match stage {
-                    SearchStage::Visible => visible_hits += hits.len(),
+                    SearchStage::Visible => {
+                        visible_hits += hits.len();
+                        let room = 4096usize.saturating_sub(visible_search_hits.len());
+                        visible_search_hits.extend(hits.iter().take(room).cloned());
+                    }
                     SearchStage::Background => background_hits += hits.len(),
                 }
 
@@ -183,6 +216,118 @@ fn run(args: Args) -> Result<()> {
             "search: hits={} visible_hits={} background_hits={} batches={}",
             emitted, visible_hits, background_hits, batches
         );
+    }
+
+    if args.print_render_plan {
+        let mut planner = RenderPipelineState::new(args.max_glyph_uploads);
+        let mut frame_viewport = viewport.clone();
+        let frame_count = args.render_sim_frames.max(1);
+
+        for _ in 0..frame_count {
+            let frame_visible = frame_viewport.visible_line_range(total_lines);
+            let line_slices = mapped.line_window(&index, frame_visible.clone())?;
+            let line_text = line_slices
+                .iter()
+                .map(|slice| String::from_utf8_lossy(slice.bytes).into_owned())
+                .collect::<Vec<_>>();
+
+            let mut highlights = Vec::new();
+            for hit in &visible_search_hits {
+                if hit.line.0 < frame_visible.start.0 || hit.line.0 >= frame_visible.end.0 {
+                    continue;
+                }
+
+                if let Ok(line_slice) = mapped.line_slice(&index, hit.line) {
+                    let start_col = hit
+                        .byte_range
+                        .start
+                        .0
+                        .saturating_sub(line_slice.byte_range.start.0)
+                        as u32;
+                    let end_col = hit
+                        .byte_range
+                        .end
+                        .0
+                        .saturating_sub(line_slice.byte_range.start.0)
+                        as u32;
+                    if let Some(highlight) =
+                        HighlightSpan::new(hit.line, start_col, end_col, HighlightKind::Search)
+                    {
+                        highlights.push(highlight);
+                    }
+                }
+            }
+
+            let plan = planner.plan_frame(
+                frame_visible.clone(),
+                line_text.iter().map(String::as_str),
+                &highlights,
+            );
+            let uploaded_lines: u64 = plan
+                .upload_line_ranges
+                .iter()
+                .map(|range| range.end.0.saturating_sub(range.start.0))
+                .sum();
+            println!(
+                "render-frame: frame={} visible=[{}..{}) uploaded_lines={} upload_ranges={} dirty_glyphs={} highlight_batches={} text_instances={}",
+                plan.frame_number,
+                plan.visible_line_range.start.0,
+                plan.visible_line_range.end.0,
+                uploaded_lines,
+                plan.upload_line_ranges.len(),
+                plan.dirty_glyphs.len(),
+                plan.highlight_batches.len(),
+                plan.text_instance_count
+            );
+
+            frame_viewport.scroll_lines(1, total_lines);
+        }
+    }
+
+    if let Some(trace_path) = args.trace_json {
+        let raw = std::fs::read(&trace_path)?;
+        let spans = parse_spans_json(&raw)?;
+        let trace_index = TraceIndex::build(spans)?;
+
+        let (default_start, default_end) = trace_index.time_bounds().unwrap_or((0, 0));
+        let window_start = args.trace_window_start_ns.unwrap_or(default_start);
+        let window_end = args.trace_window_end_ns.unwrap_or(default_end);
+        let trace_window =
+            trace_index.query_window(window_start, window_end, args.trace_max_spans)?;
+
+        println!(
+            "trace: file={} spans={} tracks={} window=[{}..{}) window_spans={}",
+            trace_path.display(),
+            trace_index.span_count(),
+            trace_index.track_count(),
+            window_start,
+            window_end,
+            trace_window.len()
+        );
+
+        if args.print_trace_tracks {
+            for track in trace_index.track_summaries() {
+                println!(
+                    "trace-track: service={} lanes={} spans={}",
+                    track.service, track.lanes, track.span_count
+                );
+            }
+        }
+
+        if args.print_trace_spans {
+            for span in trace_window {
+                println!(
+                    "trace-span: service={} lane={} span={} parent={:?} start={} end={} name={}",
+                    span.service,
+                    span.lane,
+                    span.span_id,
+                    span.parent_span_id,
+                    span.start_ns,
+                    span.end_ns,
+                    span.name
+                );
+            }
+        }
     }
 
     Ok(())

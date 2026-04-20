@@ -6,11 +6,22 @@ license.workspace = true
 authors.workspace = true
 
 [dependencies]
+tachyon-core = { path = "../tachyon-core" }
 tachyon-ingest = { path = "../tachyon-ingest" }
+tachyon-render = { path = "../tachyon-render" }
+tachyon-trace = { path = "../tachyon-trace" }
 
 [dev-dependencies]
 criterion.workspace = true
 
 [[bench]]
 name = "newline_index"
+harness = false
+
+[[bench]]
+name = "frame_plan"
+harness = false
+
+[[bench]]
+name = "trace_window"
 harness = false

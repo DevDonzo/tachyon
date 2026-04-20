@@ -663,7 +663,7 @@ dependencies = [
 
 [[package]]
 name = "tachyon-app"
-version = "0.1.0"
+version = "0.1.4"
 dependencies = [
  "clap",
  "tachyon-core",
@@ -677,15 +677,18 @@ dependencies = [
 
 [[package]]
 name = "tachyon-bench"
-version = "0.1.0"
+version = "0.1.4"
 dependencies = [
  "criterion",
+ "tachyon-core",
  "tachyon-ingest",
+ "tachyon-render",
+ "tachyon-trace",
 ]
 
 [[package]]
 name = "tachyon-core"
-version = "0.1.0"
+version = "0.1.4"
 dependencies = [
  "serde",
  "thiserror",
@@ -693,7 +696,7 @@ dependencies = [
 
 [[package]]
 name = "tachyon-ingest"
-version = "0.1.0"
+version = "0.1.4"
 dependencies = [
  "memchr",
  "memmap2",
@@ -704,14 +707,14 @@ dependencies = [
 
 [[package]]
 name = "tachyon-render"
-version = "0.1.0"
+version = "0.1.4"
 dependencies = [
  "tachyon-core",
 ]
 
 [[package]]
 name = "tachyon-search"
-version = "0.1.0"
+version = "0.1.4"
 dependencies = [
  "crossbeam-channel",
  "memchr",
@@ -723,7 +726,7 @@ dependencies = [
 
 [[package]]
 name = "tachyon-trace"
-version = "0.1.0"
+version = "0.1.4"
 dependencies = [
  "serde",
  "serde_json",

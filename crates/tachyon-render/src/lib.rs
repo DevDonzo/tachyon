@@ -62,7 +62,12 @@ pub struct HighlightSpan {
 }
 
 impl HighlightSpan {
-    pub fn new(line: LineNumber, start_col: u32, end_col: u32, kind: HighlightKind) -> Option<Self> {
+    pub fn new(
+        line: LineNumber,
+        start_col: u32,
+        end_col: u32,
+        kind: HighlightKind,
+    ) -> Option<Self> {
         (end_col > start_col).then_some(Self {
             line,
             start_col,
@@ -287,7 +292,10 @@ mod tests {
         assert_eq!(first.upload_line_ranges, vec![LineNumber(0)..LineNumber(5)]);
 
         let second = pipeline.plan_frame(LineNumber(2)..LineNumber(7), ["alpha", "beta"], &[]);
-        assert_eq!(second.upload_line_ranges, vec![LineNumber(5)..LineNumber(7)]);
+        assert_eq!(
+            second.upload_line_ranges,
+            vec![LineNumber(5)..LineNumber(7)]
+        );
     }
 
     #[test]

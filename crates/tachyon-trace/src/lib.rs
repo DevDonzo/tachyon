@@ -47,7 +47,10 @@ impl TraceIndex {
 
         let mut per_service = BTreeMap::<String, Vec<usize>>::new();
         for (index, span) in spans.iter().enumerate() {
-            per_service.entry(span.service.clone()).or_default().push(index);
+            per_service
+                .entry(span.service.clone())
+                .or_default()
+                .push(index);
         }
 
         let mut lane_by_span = vec![0u32; spans.len()];

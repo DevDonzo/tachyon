@@ -82,11 +82,11 @@ cargo bench -p tachyon-bench
 ## Roadmap
 
 - [x] **Phase 0:** Project scaffolding and CI/CD setup.
-- [ ] **Phase 1:** Parallel newline indexing and basic seeking.
-- [ ] **Phase 2:** Virtualized viewport with smooth scrolling.
-- [ ] **Phase 3:** High-speed streaming search engine.
-- [ ] **Phase 4:** GPU-accelerated text rendering optimizations.
-- [ ] **Phase 5:** OTLP/JSON trace timeline support.
+- [x] **Phase 1:** Parallel newline indexing and basic seeking.
+- [x] **Phase 2:** Virtualized viewport with smooth scrolling.
+- [x] **Phase 3:** High-speed streaming search engine.
+- [x] **Phase 4:** Render-frame planning with dirty upload ranges, glyph upload budgeting, and highlight batching.
+- [x] **Phase 5:** OTLP/JSON trace indexing with lane assignment and time-window timeline queries.
 
 ## License
 

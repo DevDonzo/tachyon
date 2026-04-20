@@ -8,3 +8,5 @@ cd "$REPO_ROOT"
 
 cargo run -q -p tachyon-app -- assets/samples/perf-smoke.log --chunk-size $((8 * 1024 * 1024)) >/dev/null
 cargo bench -q -p tachyon-bench --bench newline_index -- --sample-size 10
+cargo bench -q -p tachyon-bench --bench frame_plan -- --sample-size 10
+cargo bench -q -p tachyon-bench --bench trace_window -- --sample-size 10
