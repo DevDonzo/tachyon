@@ -1,0 +1,25 @@
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background with slight grain or depth -->
+  <rect width="256" height="256" rx="48" fill="#0F172A"/>
+
+  <!-- Outer Glow / Atmosphere -->
+  <circle cx="128" cy="128" r="80" fill="url(#paint0_radial)" fill-opacity="0.2"/>
+
+  <!-- The Tachyon Symbol (Sharp, Forward-Leaning) -->
+  <path d="M70 186L128 70L186 186H160L128 120L96 186H70Z" fill="#38BDF8"/>
+
+  <!-- Velocity Lines (Data Streams) -->
+  <path d="M128 100L110 136H146L128 100Z" fill="#F1F5F9" fill-opacity="0.8"/>
+  <rect x="90" y="194" width="76" height="4" rx="2" fill="#38BDF8" fill-opacity="0.5"/>
+  <rect x="110" y="206" width="36" height="4" rx="2" fill="#38BDF8" fill-opacity="0.3"/>
+
+  <!-- Accents -->
+  <path d="M128 70L135 85H121L128 70Z" fill="#F1F5F9"/>
+
+  <defs>
+    <radialGradient id="paint0_radial" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(128 128) rotate(90) scale(80)">
+      <stop stop-color="#38BDF8"/>
+      <stop offset="1" stop-color="#38BDF8" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+</svg>

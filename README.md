@@ -1,17 +1,28 @@
-# Tachyon
+<div align="center">
+  <img src="assets/logo.svg" width="128" height="128" alt="Tachyon Logo" />
+  <h1>Tachyon</h1>
+  <p><strong>High-performance desktop log and trace explorer built in Rust.</strong></p>
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Rust](https://img.shields.io/badge/rust-2024%2B-orange.svg)](https://www.rust-lang.org/)
-[![CI](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
-[![Release](../../actions/workflows/release.yml/badge.svg)](../../actions/workflows/release.yml)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+  [![Rust](https://img.shields.io/badge/rust-2024%2B-orange.svg)](https://www.rust-lang.org/)
+  [![Release](https://img.shields.io/github/v/release/DevDonzo/tachyon?include_prereleases)](https://github.com/DevDonzo/tachyon/releases)
+</div>
 
-**Tachyon** is a high-performance desktop log and trace explorer built in Rust. It is designed for developers and SREs who need to navigate, search, and analyze massive log files (100GB+) with zero latency.
+---
 
-## About
+**Tachyon** is a specialized workstation for developers and SREs who need to navigate, search, and analyze massive log files (100GB+) with zero latency. 
 
-Tachyon is an independent research project exploring high-performance systems engineering. It focuses on zero-copy data processing and GPU-accelerated visualization to provide a low-latency environment for inspecting massive datasets.
+It is an independent research project focused on high-performance systems engineering, zero-copy data processing, and GPU-accelerated visualization.
 
-Tachyon aims to provide a fluid, responsive, and impossibly fast experience by leveraging modern systems engineering, memory-mapped I/O, and GPU-accelerated rendering.
+## 📥 Download
+
+Tachyon is currently in **Beta**. You can download the latest pre-built binaries for your platform from the [Releases](https://github.com/DevDonzo/tachyon/releases) page.
+
+| Platform | Download |
+|----------|----------|
+| **macOS** | [Download for macOS](https://github.com/DevDonzo/tachyon/releases/latest) |
+| **Windows** | [Download for Windows](https://github.com/DevDonzo/tachyon/releases/latest) |
+| **Linux** | [Download for Linux](https://github.com/DevDonzo/tachyon/releases/latest) |
 
 ## Performance Goals
 
@@ -31,7 +42,7 @@ Tachyon is built with a performance-first mindset:
 
 ## Architecture
 
-Tachyon is structured as a multi-crate Rust workspace to ensure modularity and testability:
+Tachyon is structured as a multi-crate Rust workspace:
 
 | Crate | Responsibility |
 |-------|----------------|
@@ -43,13 +54,15 @@ Tachyon is structured as a multi-crate Rust workspace to ensure modularity and t
 | `tachyon-app` | UI orchestration and application shell. |
 | `tachyon-bench` | Reproducible performance benchmarks and profiling. |
 
-## Getting Started
+## Getting Started (Build from Source)
 
 ### Prerequisites
 - [Rust](https://www.rust-lang.org/tools/install) (2024 edition)
 
 ### Building
 ```bash
+git clone https://github.com/DevDonzo/tachyon.git
+cd tachyon
 cargo build --release
 ```
 
@@ -58,17 +71,12 @@ cargo build --release
 cargo bench -p tachyon-bench
 ```
 
-## CI/CD
-
-GitHub Actions now provides:
-- **CI (`.github/workflows/ci.yml`)**: format check, clippy, tests, release-mode workspace build, and perf smoke on main/manual runs.
-- **CD (`.github/workflows/release.yml`)**: builds `tachyon-app` binaries for Linux/macOS/Windows and publishes them to GitHub Releases for `v*` tags.
-
 ## Roadmap
 
-- [x] **Phase 1 (foundation):** Parallel newline indexing and basic seeking.
-- [x] **Phase 2 (foundation):** Virtualized viewport ranges, jump/scroll controls, and bounded window fetches.
-- [x] **Phase 3 (foundation):** Streaming search batches with visible-region priority, parallel background chunk scans, and cancellation support.
+- [x] **Phase 0:** Project scaffolding and CI/CD setup.
+- [ ] **Phase 1:** Parallel newline indexing and basic seeking.
+- [ ] **Phase 2:** Virtualized viewport with smooth scrolling.
+- [ ] **Phase 3:** High-speed streaming search engine.
 - [ ] **Phase 4:** GPU-accelerated text rendering optimizations.
 - [ ] **Phase 5:** OTLP/JSON trace timeline support.
 
