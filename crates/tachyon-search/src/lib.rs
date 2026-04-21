@@ -1,4 +1,4 @@
-use crossbeam_channel::unbounded;
+use crossbeam_channel::bounded;
 use rayon::prelude::*;
 use regex::bytes::Regex;
 use std::ops::Range;
@@ -64,8 +64,19 @@ impl CompiledQuery {
                         "substring pattern must not be empty".to_owned(),
                     ));
                 }
+                // Pre-normalize to ASCII lowercase for case-insensitive search.
+                // Eliminates the per-line allocation in find_offsets.
+                let needle = if *case_sensitive {
+                    query.pattern.as_bytes().to_vec()
+                } else {
+                    query
+                        .pattern
+                        .bytes()
+                        .map(|b| b.to_ascii_lowercase())
+                        .collect()
+                };
                 Ok(Self::Substring {
-                    needle: query.pattern.as_bytes().to_vec(),
+                    needle,
                     case_sensitive: *case_sensitive,
                 })
             }
@@ -106,23 +117,21 @@ fn find_substring_offsets(
             .collect();
     }
 
-    let haystack_storage = haystack
-        .iter()
-        .map(u8::to_ascii_lowercase)
-        .collect::<Vec<_>>();
-    let needle_storage = needle
-        .iter()
-        .map(u8::to_ascii_lowercase)
-        .collect::<Vec<_>>();
-    let (haystack_ref, needle_ref): (&[u8], &[u8]) = (&haystack_storage, &needle_storage);
-
+    // Case-insensitive: needle is pre-normalized to ASCII lowercase by compile().
+    // Scan the haystack byte-by-byte with on-the-fly lowercase comparison,
+    // eliminating the per-call heap allocation of a lowercased haystack copy.
+    let nlen = needle.len();
+    let hlen = haystack.len();
     let mut ranges = Vec::new();
-    let mut start = 0usize;
-    while start + needle_ref.len() <= haystack_ref.len() {
-        if &haystack_ref[start..start + needle_ref.len()] == needle_ref {
-            ranges.push(start..start + needle_ref.len());
+    let mut pos = 0usize;
+
+    while pos + nlen <= hlen {
+        if haystack[pos].to_ascii_lowercase() == needle[0]
+            && (1..nlen).all(|i| haystack[pos + i].to_ascii_lowercase() == needle[i])
+        {
+            ranges.push(pos..pos + nlen);
         }
-        start += 1;
+        pos += 1;
     }
     ranges
 }
@@ -171,7 +180,7 @@ pub fn search_streaming(
         return Ok(emitted_hits);
     }
 
-    let (sender, receiver) = unbounded::<SearchBatch>();
+    let (sender, receiver) = bounded::<SearchBatch>(512);
     let error_slot = Arc::new(Mutex::new(None::<TachyonError>));
     let chunk_ranges = build_background_chunks(total_lines, visible, chunk_lines);
 
