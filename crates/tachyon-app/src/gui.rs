@@ -1773,7 +1773,7 @@ fn line_layout_job(text: &str, line_start: u64, hits: &[SearchHit], ui: &egui::U
         ..Default::default()
     };
     let hi = TextFormat {
-        font_id: font_id,
+        font_id,
         color: C_HIT_FG,
         background: C_HIT_BG,
         ..Default::default()
