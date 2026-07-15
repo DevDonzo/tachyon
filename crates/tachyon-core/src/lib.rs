@@ -51,30 +51,18 @@ pub struct SearchQuery {
 }
 
 impl SearchQuery {
-    pub fn substring(pattern: impl Into<String>, case_sensitive: bool) -> Result<Self> {
-        let pattern = pattern.into();
-        if pattern.is_empty() {
-            return Err(TachyonError::InvalidQuery(
-                "substring pattern must not be empty".to_owned(),
-            ));
-        }
-        Ok(Self {
-            pattern,
+    pub fn substring(pattern: impl Into<String>, case_sensitive: bool) -> Self {
+        Self {
+            pattern: pattern.into(),
             mode: SearchMode::Substring { case_sensitive },
-        })
+        }
     }
 
-    pub fn regex(pattern: impl Into<String>) -> Result<Self> {
-        let pattern = pattern.into();
-        if pattern.is_empty() {
-            return Err(TachyonError::InvalidQuery(
-                "regex pattern must not be empty".to_owned(),
-            ));
-        }
-        Ok(Self {
-            pattern,
+    pub fn regex(pattern: impl Into<String>) -> Self {
+        Self {
+            pattern: pattern.into(),
             mode: SearchMode::Regex,
-        })
+        }
     }
 }
 
