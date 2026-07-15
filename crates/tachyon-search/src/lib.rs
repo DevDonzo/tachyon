@@ -566,7 +566,7 @@ mod tests {
     fn streaming_emits_visible_hits_before_background_hits() {
         let data = b"alpha\nbeta\nalpha\nbeta\n";
         let index = NewlineIndex::from_bytes_parallel(data, 4);
-        let query = SearchQuery::substring("beta", true).unwrap();
+        let query = SearchQuery::substring("beta", true);
         let config = SearchConfig {
             visible_lines: LineNumber(1)..LineNumber(2),
             chunk_lines: 1,
@@ -592,7 +592,7 @@ mod tests {
     fn cancellation_stops_search() {
         let data = b"alpha\nbeta\nalpha\nbeta\n";
         let index = NewlineIndex::from_bytes_parallel(data, 4);
-        let query = SearchQuery::substring("beta", true).unwrap();
+        let query = SearchQuery::substring("beta", true);
         let config =
             SearchConfig::with_visible_lines(LineNumber(0)..LineNumber(index.total_lines()));
         let cancelled = AtomicBool::new(true);
@@ -605,7 +605,7 @@ mod tests {
     fn max_hits_is_respected() {
         let data = b"beta\nbeta\nbeta\nbeta\nbeta\n";
         let index = NewlineIndex::from_bytes_parallel(data, 2);
-        let query = SearchQuery::substring("beta", true).unwrap();
+        let query = SearchQuery::substring("beta", true);
         let config = SearchConfig {
             visible_lines: LineNumber(0)..LineNumber(index.total_lines()),
             chunk_lines: 2,
@@ -628,7 +628,7 @@ mod tests {
     fn case_insensitive_substring_matches() {
         let data = b"Service=API\nservice=api\n";
         let index = NewlineIndex::from_bytes_parallel(data, 8);
-        let query = SearchQuery::substring("service=api", false).unwrap();
+        let query = SearchQuery::substring("service=api", false);
         let cancelled = AtomicBool::new(false);
 
         let hits = search_visible_first(
