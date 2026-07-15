@@ -13,7 +13,7 @@ fn bench_search(c: &mut Criterion) {
     group.throughput(Throughput::Bytes(bytes.len() as u64));
 
     group.bench_function("substring_rare_match_visible_first", |bench| {
-        let query = SearchQuery::substring("req=0007a11f", true).unwrap();
+        let query = SearchQuery::substring("req=0007a11f", true);
         let config = SearchConfig {
             visible_lines: LineNumber(0)..LineNumber(80),
             chunk_lines: 8_192,
@@ -36,7 +36,7 @@ fn bench_search(c: &mut Criterion) {
     });
 
     group.bench_function("regex_visible_first", |bench| {
-        let query = SearchQuery::regex(r"request_id=[0-9a-f]{8}").unwrap();
+        let query = SearchQuery::regex(r"request_id=[0-9a-f]{8}");
         let config = SearchConfig {
             visible_lines: LineNumber(0)..LineNumber(80),
             chunk_lines: 8_192,
